@@ -1,164 +1,182 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode, type FormEvent, type ChangeEvent } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, FileText, QrCode, HeartHandshake, ShoppingBag, Bot, 
-  Upload, ShieldCheck, Loader2, AlertTriangle, PlusCircle,
-  User, Stethoscope, Pill, Sparkles, CheckCircle2, Code, FileCheck,
-  Download, Printer, Camera, RefreshCw, Copy, Check, ExternalLink,
-  Tag, Cpu, ChevronRight, Calendar, Plus, Minus, Heart, ArrowUpRight
+import {
+  LayoutDashboard,
+  QrCode,
+  ShieldCheck,
+  HeartHandshake,
+  ShoppingBag,
+  Award,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Printer,
+  Camera,
+  RefreshCw,
+  Copy,
+  Check,
+  Upload,
+  Plus,
+  Minus,
+  ExternalLink,
+  Search,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Html5Qrcode } from 'html5-qrcode';
-// @ts-ignore
-import ColorBends from '../components/ui/ColorBends';
 import { medishareService } from '../api/medishare';
 
-const SidebarLink = ({ to, icon: Icon, children }: { to: string, icon: any, children: React.ReactNode }) => {
+const SidebarLink = ({
+  to,
+  icon: Icon,
+  children,
+}: {
+  to: string;
+  icon: typeof LayoutDashboard;
+  children: ReactNode;
+}) => {
   const location = useLocation();
-  const isActive = location.pathname === to || (to !== '/medishare' && location.pathname.startsWith(to));
-  
+  const isActive =
+    to === '/medishare'
+      ? location.pathname === '/medishare' || location.pathname === '/medishare/'
+      : location.pathname === to || location.pathname.startsWith(`${to}/`);
+
   return (
-    <Link 
-      to={to} 
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-        isActive 
-          ? 'bg-medishare-accent/20 text-medishare-accent font-medium border border-medishare-accent/30' 
-          : 'text-gray-400 hover:bg-white/5 hover:text-white'
-      }`}
+    <Link
+      to={to}
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${isActive
+          ? 'bg-teal-50 text-teal-800 font-medium border border-teal-200'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+        }`}
     >
-      <Icon className="w-5 h-5" />
-      {children}
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      <span>{children}</span>
     </Link>
   );
 };
 
-// --- SUB-PAGES ---
-
+// --- OVERVIEW ---
 const Overview = () => {
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [stats, setStats] = useState({
-    reports: 5,
     verified: 0,
     donations: 0,
-    medicines: 0
+    medicines: 0,
   });
 
   useEffect(() => {
+    medishareService
+      .checkHealth()
+      .then(() => setApiOnline(true))
+      .catch(() => setApiOnline(false));
+
     const loadStats = async () => {
       try {
-        const medsRes = await medishareService.getMedicines().catch(() => ({ data: [] }));
-        const donRes = await medishareService.getAllDonations().catch(() => ({ data: [] }));
+        const [medsRes, donRes] = await Promise.all([
+          medishareService.getMedicines().catch(() => ({ data: [] })),
+          medishareService.getAllDonations().catch(() => ({ data: [] })),
+        ]);
         const medsList = Array.isArray(medsRes.data) ? medsRes.data : [];
         const donList = Array.isArray(donRes.data) ? donRes.data : [];
         setStats({
-          reports: 5,
           verified: medsList.filter((m: any) => m.isVerified).length || medsList.length,
           donations: donList.length,
-          medicines: medsList.length
+          medicines: medsList.length,
         });
-      } catch (err) {
-        console.error("Error loading stats:", err);
+      } catch {
+        // Ignore stat load errors when DB is offline
       }
     };
     loadStats();
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap justify-between items-center gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white tracking-tight">Healthcare Intelligence Hub</h1>
-          <p className="text-sm text-gray-400 mt-1">Decentralized Medical Verification, QR Serialization & Medicine Redistribution</p>
+          <h1 className="text-2xl font-bold text-slate-900">Supply Chain Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Register medicine batches, verify on-chain authenticity, mint ERC-721 certificates, and track donations.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Link 
-            to="/medishare/generate" 
-            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl text-sm hover:opacity-90 transition flex items-center gap-2 shadow-lg shadow-pink-500/20"
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border ${apiOnline === true
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : apiOnline === false
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
           >
-            <QrCode className="w-4 h-4" /> Generate QR Code
-          </Link>
-          <Link 
-            to="/medishare/verify" 
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-sm border border-white/15 transition flex items-center gap-2"
+            API: {apiOnline === true ? 'ONLINE (:5000)' : apiOnline === false ? 'OFFLINE' : 'CHECKING'}
+          </span>
+          <Link
+            to="/medishare/generate"
+            className="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white font-medium rounded-md text-xs"
           >
-            <ShieldCheck className="w-4 h-4 text-green-400" /> Verify Batch
+            + Register Batch
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { title: 'Reports Analyzed', value: stats.reports, color: 'text-blue-400', desc: 'Clinical NLP & Vision' },
-          { title: 'Medicines Verified', value: stats.verified, color: 'text-green-400', desc: 'MongoDB & Blockchain' },
-          { title: 'Total Donations', value: stats.donations, color: 'text-purple-400', desc: 'Community Live Pool' },
-          { title: 'Store Medicines', value: stats.medicines, color: 'text-yellow-400', desc: 'MongoDB Active Records' }
-        ].map((stat, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-black/40 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/10 relative overflow-hidden group hover:border-white/20 transition"
-          >
-            <div className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{stat.title}</div>
-            <div className={`text-3xl font-display font-bold ${stat.color} mb-1`}>{stat.value}</div>
-            <div className="text-xs text-gray-500">{stat.desc}</div>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-5">
+          <div className="text-xs font-medium text-slate-500 uppercase">Registered Medicines</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{stats.medicines}</div>
+          <div className="text-xs text-slate-500 mt-1">MongoDB medicine inventory</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-5">
+          <div className="text-xs font-medium text-slate-500 uppercase">Verified Records</div>
+          <div className="text-2xl font-bold text-teal-700 mt-1">{stats.verified}</div>
+          <div className="text-xs text-slate-500 mt-1">Verified batches synced</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-lg p-5">
+          <div className="text-xs font-medium text-slate-500 uppercase">Medicine Donations</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{stats.donations}</div>
+          <div className="text-xs text-slate-500 mt-1">Active donation records</div>
+        </div>
       </div>
 
-      {/* Quick Action Modules */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link to="/medishare/generate" className="group">
-          <div className="bg-gradient-to-br from-pink-950/30 via-black/40 to-purple-950/20 backdrop-blur-md p-6 rounded-2xl border border-pink-500/20 hover:border-pink-500/50 transition duration-300 h-full flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
-                <QrCode className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white group-hover:text-pink-300 transition-colors">Generate Medicine QR</h3>
-              <p className="text-xs text-gray-400">Register new medicine batch in MongoDB & Smart Contract, generating high-res scannable packaging QR codes.</p>
-            </div>
-            <div className="flex items-center text-xs font-semibold text-pink-400 group-hover:translate-x-1 transition-transform">
-              Create QR Code <ChevronRight className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-        </Link>
-
-        <Link to="/medishare/verify" className="group">
-          <div className="bg-gradient-to-br from-emerald-950/30 via-black/40 to-blue-950/20 backdrop-blur-md p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/50 transition duration-300 h-full flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">Verify Medicine QR</h3>
-              <p className="text-xs text-gray-400">Scan QR codes with live camera or query batch IDs to inspect authenticity, expiry, and manufacturer proof in MongoDB & Blockchain.</p>
-            </div>
-            <div className="flex items-center text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">
-              Launch Scanner <ChevronRight className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-        </Link>
-
-        <Link to="/medishare/donations" className="group">
-          <div className="bg-gradient-to-br from-purple-950/30 via-black/40 to-pink-950/20 backdrop-blur-md p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/50 transition duration-300 h-full flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
-                <HeartHandshake className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">Verified Donations Pool</h3>
-              <p className="text-xs text-gray-400">Donate verified medicines to NGOs and community clinics with 1-click amount selection and real-time MongoDB tracking.</p>
-            </div>
-            <div className="flex items-center text-xs font-semibold text-purple-400 group-hover:translate-x-1 transition-transform">
-              Explore Donations <ChevronRight className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-        </Link>
+      <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+        <h2 className="text-sm font-bold text-slate-900">Smart Contract Workflow (MediShare.sol)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <Link
+            to="/medishare/generate"
+            className="p-4 rounded-md border border-slate-200 hover:border-teal-400 space-y-1.5"
+          >
+            <div className="font-semibold text-slate-900">1. Add Medicine Batch &amp; QR</div>
+            <p className="text-slate-600">
+              Calls <code className="font-mono bg-slate-100 px-1 rounded">addMedicine()</code> on Hardhat EVM and generates a QR code.
+            </p>
+          </Link>
+          <Link
+            to="/medishare/verify"
+            className="p-4 rounded-md border border-slate-200 hover:border-teal-400 space-y-1.5"
+          >
+            <div className="font-semibold text-slate-900">2. Verify &amp; Mint ERC-721 NFT</div>
+            <p className="text-slate-600">
+              Calls <code className="font-mono bg-slate-100 px-1 rounded">verifyBatch()</code>,{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">verifyMedicine()</code>, and{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">authenticateBatch()</code>.
+            </p>
+          </Link>
+          <Link
+            to="/medishare/nfts"
+            className="p-4 rounded-md border border-slate-200 hover:border-teal-400 space-y-1.5"
+          >
+            <div className="font-semibold text-slate-900">3. Inspect ERC-721 Token Ledger</div>
+            <p className="text-slate-600">
+              Queries <code className="font-mono bg-slate-100 px-1 rounded">getManufacturerNFTs()</code> and{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">isNFTValid()</code>.
+            </p>
+          </Link>
+        </div>
       </div>
     </div>
   );
 };
 
-// --- QR CODE GENERATOR SUB-PAGE ---
+// --- REGISTER BATCH & QR GENERATOR ---
 const GenerateQR = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -170,42 +188,27 @@ const GenerateQR = () => {
     expiryDate: '',
     manufacturerDetails: '',
     manufacturer: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-    registerOnChain: true,
-    addToStore: true,
     price: '25',
-    quantity: '100'
+    quantity: '100',
   });
 
   const [loading, setLoading] = useState(false);
   const [activeQrData, setActiveQrData] = useState<string | null>(null);
+  const [contractRegistered, setContractRegistered] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [qrStyle, setQrStyle] = useState<'dark' | 'light' | 'neon'>('dark');
+  const [qrStyle, setQrStyle] = useState<'light' | 'dark'>('light');
   const [mode, setMode] = useState<'full' | 'quick'>('full');
   const [quickBatch, setQuickBatch] = useState('');
 
-  // Auto-fill random batch number
   const generateRandomBatch = () => {
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const newBatch = `BATCH-MS-${randomNum}`;
-    setForm(prev => ({ ...prev, batchNumber: newBatch }));
+    setForm((prev) => ({ ...prev, batchNumber: newBatch }));
     setQuickBatch(newBatch);
   };
 
-  // Preset Date calculations
-  const setPresetDate = (monthsToAdd: number) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + monthsToAdd);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const isoString = `${yyyy}-${mm}-${dd}`;
-    
-    applyFormattedDate(isoString, form.dateFormat);
-  };
-
-  // Convert raw ISO string to chosen format and update state
   const applyFormattedDate = (isoDate: string, format: string) => {
     if (!isoDate) return;
     const [yyyy, mm, dd] = isoDate.split('-');
@@ -213,35 +216,41 @@ const GenerateQR = () => {
     if (format === 'DD/MM/YYYY') formatted = `${dd}/${mm}/${yyyy}`;
     else if (format === 'MM/DD/YYYY') formatted = `${mm}/${dd}/${yyyy}`;
     else if (format === 'MM/YYYY') formatted = `${mm}/${yyyy}`;
-    else formatted = `${yyyy}-${mm}-${dd}`;
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       rawDate: isoDate,
       dateFormat: format,
-      expiryDate: formatted
+      expiryDate: formatted,
     }));
   };
 
+  const setPresetDate = (monthsToAdd: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + monthsToAdd);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    applyFormattedDate(`${yyyy}-${mm}-${dd}`, form.dateFormat);
+  };
+
   useEffect(() => {
-    if (!form.batchNumber) {
-      generateRandomBatch();
-    }
-    if (!form.rawDate) {
-      setPresetDate(12); // Default to +1 year
-    }
+    if (!form.batchNumber) generateRandomBatch();
+    if (!form.rawDate) setPresetDate(12);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
+    setContractRegistered(null);
     setLoading(true);
 
     try {
       if (mode === 'quick') {
         if (!quickBatch.trim()) {
-          setError("Please enter a batch number");
+          setError('Please enter a batch number.');
           setLoading(false);
           return;
         }
@@ -251,13 +260,19 @@ const GenerateQR = () => {
         return;
       }
 
-      if (!form.batchNumber || !form.name || !form.brand || !form.rawDate || !form.manufacturerDetails || !form.manufacturer) {
-        setError("All fields are required to register and generate a verified QR code.");
+      if (
+        !form.batchNumber ||
+        !form.name ||
+        !form.brand ||
+        !form.rawDate ||
+        !form.manufacturerDetails ||
+        !form.manufacturer
+      ) {
+        setError('All required fields must be filled.');
         setLoading(false);
         return;
       }
 
-      // 1. Register in MongoDB & Blockchain via backend
       const res = await medishareService.addMedicineBatch({
         batchNumber: form.batchNumber.trim(),
         name: form.name.trim(),
@@ -266,16 +281,19 @@ const GenerateQR = () => {
         manufacturerDetails: form.manufacturerDetails.trim(),
         manufacturer: form.manufacturer.trim(),
         price: Number(form.price) || 20,
-        quantity: Number(form.quantity) || 100
+        quantity: Number(form.quantity) || 100,
       });
 
-      console.log("Registered medicine response:", res.data);
+      const onChain = Boolean(res.data?.contractRegistered);
+      setContractRegistered(onChain);
       setActiveQrData(form.batchNumber.trim());
-      setSuccessMsg(`Successfully registered "${form.name}" (Batch: ${form.batchNumber}) into MongoDB database!`);
+      setSuccessMsg(
+        onChain
+          ? `Batch "${form.batchNumber}" registered on MediShare.sol smart contract${res.data?.mongoRecord ? ' and MongoDB' : ''}.`
+          : `Batch "${form.batchNumber}" saved off-chain (smart contract call skipped or failed — ensure Hardhat node is running).`
+      );
     } catch (err: any) {
-      console.error("QR / Medicine creation error:", err);
-      const errDetail = err.response?.data?.error || err.message || "Failed to register medicine";
-      setError(errDetail);
+      setError(err.response?.data?.error || err.message || 'Failed to register medicine batch');
       setActiveQrData(form.batchNumber.trim());
     } finally {
       setLoading(false);
@@ -283,7 +301,7 @@ const GenerateQR = () => {
   };
 
   const handleDownloadPNG = () => {
-    const canvas = document.getElementById('medishare-qr-canvas') as HTMLCanvasElement;
+    const canvas = document.getElementById('medishare-qr-canvas') as HTMLCanvasElement | null;
     if (!canvas) return;
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
@@ -300,317 +318,275 @@ const GenerateQR = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePrintLabel = () => {
-    window.print();
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-8 text-white">
-      <div className="flex flex-wrap justify-between items-center gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-3xl font-display font-bold flex items-center gap-3">
-            <QrCode className="w-8 h-8 text-medishare-accent" />
-            Medicine QR Code Generator
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Create verified QR serialization tags stored in MongoDB & Blockchain with customizable date formats.
+          <h1 className="text-2xl font-bold text-slate-900">Register Medicine Batch &amp; QR</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Registers batch metadata via <code className="font-mono text-xs">addMedicine()</code> on-chain and generates a printable QR code.
           </p>
         </div>
 
-        {/* Mode Selector */}
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+        <div className="flex bg-slate-100 p-1 rounded-md border border-slate-200 text-xs">
           <button
+            type="button"
             onClick={() => setMode('full')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              mode === 'full' 
-                ? 'bg-medishare-accent text-black shadow-md' 
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-3 py-1.5 rounded font-medium ${mode === 'full' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-600'
+              }`}
           >
-            Register & Generate (MongoDB + Chain)
+            Register on Chain + DB
           </button>
           <button
+            type="button"
             onClick={() => setMode('quick')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
-              mode === 'quick' 
-                ? 'bg-medishare-accent text-black shadow-md' 
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-3 py-1.5 rounded font-medium ${mode === 'quick' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-600'
+              }`}
           >
-            Quick QR Generator
+            Quick QR Only
           </button>
         </div>
       </div>
 
       {successMsg && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-sm flex items-center justify-between shadow-lg"
-        >
+        <div className="p-4 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
             <span>{successMsg}</span>
+            {contractRegistered !== null && (
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-white border border-emerald-300">
+                onChain: {String(contractRegistered)}
+              </span>
+            )}
           </div>
-          <Link to="/medishare/donations" className="text-xs underline text-emerald-300 hover:text-white font-semibold">
-            View in Donations Pool →
-          </Link>
-        </motion.div>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(`/medishare/verify?batch=${encodeURIComponent(activeQrData || form.batchNumber)}`)
+            }
+            className="text-xs font-semibold underline text-emerald-800"
+          >
+            Verify &amp; Mint NFT →
+          </button>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* FORM COLUMN (Left 7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl">
-            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-medishare-accent" />
-              {mode === 'full' ? 'Batch Details & MongoDB Database Registration' : 'Direct Batch QR Serialization'}
-            </h2>
+      {error && (
+        <div className="p-3.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
-            {error && (
-              <div className="mb-6 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Form */}
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6">
+          {mode === 'quick' ? (
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                  Batch Number
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. BATCH-MS-9012"
+                    value={quickBatch}
+                    onChange={(e) => setQuickBatch(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-mono text-slate-900 focus:outline-none focus:border-teal-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={generateRandomBatch}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-md text-xs font-medium flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Random
+                  </button>
+                </div>
               </div>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-medium rounded-md text-sm flex items-center justify-center gap-2"
+              >
+                <QrCode className="w-4 h-4" /> Generate QR Code
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                  Batch Number *
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={form.batchNumber}
+                    onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-mono text-slate-900 focus:outline-none focus:border-teal-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={generateRandomBatch}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-md text-xs font-medium flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Generate ID
+                  </button>
+                </div>
+              </div>
 
-            {mode === 'quick' ? (
-              <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Batch Number / Medicine Token
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                    Medicine Name *
                   </label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text"
-                      placeholder="e.g. BATCH-MS-9012"
-                      required
-                      value={quickBatch}
-                      onChange={e => setQuickBatch(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={generateRandomBatch}
-                      className="px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl text-xs flex items-center gap-1.5 transition"
-                      title="Generate Random Batch ID"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Random
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
-                  Generate Instant QR Code
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleCreate} className="space-y-4">
-                
-                {/* Batch Number */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Batch Number (Unique Identifier) *
-                  </label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="e.g. BATCH-2026-AUG-88" 
-                      required 
-                      value={form.batchNumber} 
-                      onChange={e => setForm({...form, batchNumber: e.target.value})}
-                      className="flex-1 px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent font-mono text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={generateRandomBatch}
-                      className="px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Auto Batch
-                    </button>
-                  </div>
-                </div>
-
-                {/* Medicine Name & Brand */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Medicine Name *
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Amoxicillin 500mg" 
-                      required 
-                      value={form.name} 
-                      onChange={e => setForm({...form, name: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Brand / Manufacturer *
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Cipla Pharma / Pfizer" 
-                      required 
-                      value={form.brand} 
-                      onChange={e => setForm({...form, brand: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Expiry Date with Selectable Formats & Presets */}
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                  <div className="flex flex-wrap justify-between items-center gap-2">
-                    <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-pink-400" /> Expiry Date & Format *
-                    </label>
-                    
-                    {/* Format Selector Dropdown */}
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-[11px] text-gray-400">Format:</span>
-                      <select
-                        value={form.dateFormat}
-                        onChange={e => applyFormattedDate(form.rawDate, e.target.value)}
-                        className="bg-black/60 text-pink-300 border border-white/15 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-pink-400 font-mono"
-                      >
-                        <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                        <option value="DD/MM/YYYY">DD/MM/YYYY (IN/UK)</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
-                        <option value="MM/YYYY">MM/YYYY (Short)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                    <div>
-                      <input 
-                        type="date" 
-                        required 
-                        value={form.rawDate} 
-                        onChange={e => applyFormattedDate(e.target.value, form.dateFormat)}
-                        className="w-full px-4 py-2 bg-black/50 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-                      />
-                    </div>
-                    <div className="text-xs font-mono bg-black/40 p-2 rounded-xl border border-white/5 flex items-center justify-between text-gray-300">
-                      <span className="text-gray-500">Display:</span>
-                      <span className="font-bold text-pink-300">{form.expiryDate || 'Select a date'}</span>
-                    </div>
-                  </div>
-
-                  {/* Quick Preset Buttons */}
-                  <div className="flex items-center gap-2 flex-wrap pt-1">
-                    <span className="text-[11px] text-gray-400">Quick Presets:</span>
-                    {[
-                      { label: '+6 Mo', months: 6 },
-                      { label: '+1 Year', months: 12 },
-                      { label: '+2 Years', months: 24 },
-                      { label: '+3 Years', months: 36 },
-                      { label: '+5 Years', months: 60 }
-                    ].map(p => (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => setPresetDate(p.months)}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/5 hover:bg-white/15 text-gray-300 border border-white/10 transition"
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Facility Info */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Facility / Plant Details *
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Plant-04, Himachal Pradesh - WHO-GMP Certified" 
-                    required 
-                    value={form.manufacturerDetails} 
-                    onChange={e => setForm({...form, manufacturerDetails: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Amoxicillin 500mg"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:border-teal-600"
                   />
                 </div>
-
-                {/* Ethereum Manufacturer Wallet */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>Manufacturer Wallet / Node Address</span>
-                    <span className="text-[10px] text-gray-500 font-mono">Ethereum / Hardhat</span>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                    Brand *
                   </label>
-                  <input 
-                    type="text" 
-                    placeholder="0x..." 
-                    value={form.manufacturer} 
-                    onChange={e => setForm({...form, manufacturer: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-medishare-accent text-gray-300"
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cipla"
+                    value={form.brand}
+                    onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:border-teal-600"
                   />
                 </div>
+              </div>
 
-                {/* Price & Quantity for Store/Donations */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Price ($)</label>
-                    <input 
-                      type="number" 
-                      value={form.price} 
-                      onChange={e => setForm({...form, price: e.target.value})}
-                      className="w-full px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Initial Stock (Units)</label>
-                    <input 
-                      type="number" 
-                      value={form.quantity} 
-                      onChange={e => setForm({...form, quantity: e.target.value})}
-                      className="w-full px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-                    />
+              <div className="p-3.5 rounded-md bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-700 uppercase">Expiry Date *</label>
+                  <select
+                    value={form.dateFormat}
+                    onChange={(e) => applyFormattedDate(form.rawDate, e.target.value)}
+                    className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-mono text-slate-700"
+                  >
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="MM/YYYY">MM/YYYY</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <input
+                    type="date"
+                    required
+                    value={form.rawDate}
+                    onChange={(e) => applyFormattedDate(e.target.value, form.dateFormat)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900"
+                  />
+                  <div className="text-xs font-mono bg-white px-3 py-2 rounded-md border border-slate-200 flex justify-between">
+                    <span className="text-slate-500">Label:</span>
+                    <span className="font-semibold text-slate-900">{form.expiryDate || '-'}</span>
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full mt-4 py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-95 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-                  Register in MongoDB & Generate Cryptographic QR
-                </button>
-              </form>
-            )}
-          </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '+6 Mo', months: 6 },
+                    { label: '+1 Yr', months: 12 },
+                    { label: '+2 Yr', months: 24 },
+                    { label: '+3 Yr', months: 36 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setPresetDate(p.months)}
+                      className="px-2.5 py-1 rounded text-xs bg-white border border-slate-300 hover:bg-slate-100 text-slate-700"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                  Facility / Manufacturer Details *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Plant-04, WHO-GMP Certified Facility"
+                  value={form.manufacturerDetails}
+                  onChange={(e) => setForm({ ...form, manufacturerDetails: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:border-teal-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
+                  Manufacturer Ethereum Address (Hardhat Wallet) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.manufacturer}
+                  onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-800 focus:outline-none focus:border-teal-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Price ($)</label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Quantity</label>
+                  <input
+                    type="number"
+                    value={form.quantity}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white font-medium rounded-md text-sm flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                Register Batch &amp; Generate QR
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* PREVIEW & EXPORT COLUMN (Right 5 Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl flex flex-col items-center text-center">
-            
-            <div className="w-full flex justify-between items-center mb-6">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-medishare-accent" /> Packaging Preview
-              </span>
-
-              {/* QR Style toggle */}
-              <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/10 text-[10px]">
-                {(['dark', 'light', 'neon'] as const).map(style => (
+        {/* Preview */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-5">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold uppercase text-slate-500">Packaging Label Preview</span>
+              <div className="flex border border-slate-200 rounded overflow-hidden text-xs">
+                {(['light', 'dark'] as const).map((style) => (
                   <button
                     key={style}
+                    type="button"
                     onClick={() => setQrStyle(style)}
-                    className={`px-2 py-1 rounded capitalize font-medium transition ${
-                      qrStyle === style ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 capitalize ${qrStyle === style ? 'bg-slate-800 text-white' : 'bg-white text-slate-600'
+                      }`}
                   >
                     {style}
                   </button>
@@ -618,35 +594,19 @@ const GenerateQR = () => {
               </div>
             </div>
 
-            {/* Medicine Security Label Card (Printable) */}
-            <div 
+            <div
               id="printable-medicine-label"
-              className={`w-full p-6 rounded-2xl border transition-all duration-300 ${
-                qrStyle === 'light' 
-                  ? 'bg-white text-black border-gray-300 shadow-2xl' 
-                  : qrStyle === 'neon'
-                  ? 'bg-gradient-to-b from-gray-950 to-black text-white border-pink-500/40 shadow-[0_0_30px_rgba(255,159,252,0.15)]'
-                  : 'bg-black/80 text-white border-white/15 shadow-xl'
-              }`}
+              className={`p-5 rounded-md border text-center ${qrStyle === 'dark'
+                  ? 'bg-slate-900 text-white border-slate-800'
+                  : 'bg-white text-slate-900 border-slate-300'
+                }`}
             >
-              {/* Header Badge */}
-              <div className="flex justify-between items-center border-b pb-3 mb-4 border-white/10">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400 font-bold text-xs">
-                    M
-                  </div>
-                  <span className="font-bold tracking-tight text-xs">MEDISHARE AUTH</span>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                  qrStyle === 'light' ? 'bg-green-100 text-green-800' : 'bg-green-500/20 text-green-400 border border-green-500/30'
-                }`}>
-                  MongoDB Verified
-                </span>
+              <div className="flex justify-between items-center border-b border-slate-200/30 pb-2 mb-4 text-xs">
+                <span className="font-bold">MEDISHARE</span>
+                <span className="font-mono text-[11px]">ERC-721 BATCH TAG</span>
               </div>
 
-              {/* QR Code Container */}
-              <div className="p-4 bg-white rounded-xl shadow-inner inline-block my-2 border border-gray-200">
-                {/* Hidden canvas for downloading */}
+              <div className="inline-block p-3 bg-white rounded border border-slate-200">
                 <div style={{ display: 'none' }}>
                   <QRCodeCanvas
                     id="medishare-qr-canvas"
@@ -656,326 +616,68 @@ const GenerateQR = () => {
                     includeMargin={true}
                   />
                 </div>
-
                 <QRCodeSVG
                   value={activeQrData || form.batchNumber || 'BATCH-SAMPLE'}
-                  size={180}
+                  size={170}
                   level="H"
                   includeMargin={false}
                 />
               </div>
 
-              {/* Tag Details */}
-              <div className="space-y-1.5 mt-3 text-left text-xs">
-                <div className="font-bold text-base tracking-wide truncate">
-                  {form.name || 'Sample Medicine Name'}
+              <div className="mt-4 text-left text-xs space-y-1">
+                <div className="font-bold text-sm truncate">{form.name || 'Medicine Name'}</div>
+                <div className="flex justify-between opacity-80">
+                  <span>Brand: {form.brand || 'Manufacturer'}</span>
+                  <span>Exp: {form.expiryDate || 'YYYY-MM-DD'}</span>
                 </div>
-                <div className="text-gray-400 text-xs flex justify-between">
-                  <span>Brand: <strong className={qrStyle === 'light' ? 'text-gray-900' : 'text-gray-200'}>{form.brand || 'Pharma Corp'}</strong></span>
-                  <span>Exp ({form.dateFormat}): <strong className={qrStyle === 'light' ? 'text-gray-900' : 'text-gray-200'}>{form.expiryDate || '2027-12-31'}</strong></span>
-                </div>
-                <div className="font-mono text-[11px] pt-1.5 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-gray-400">BATCH:</span>
-                  <span className="font-bold text-pink-400">{activeQrData || form.batchNumber || 'BATCH-SAMPLE'}</span>
+                <div className="pt-2 border-t border-slate-200/30 font-mono flex justify-between">
+                  <span>BATCH:</span>
+                  <span className="font-bold">{activeQrData || form.batchNumber || 'BATCH-SAMPLE'}</span>
                 </div>
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="w-full space-y-3 mt-6">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleDownloadPNG}
-                  className="py-2.5 px-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold border border-white/15 transition flex items-center justify-center gap-1.5"
-                >
-                  <Download className="w-4 h-4 text-blue-400" /> Download PNG
-                </button>
-
-                <button
-                  onClick={handleCopyBatch}
-                  className="py-2.5 px-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold border border-white/15 transition flex items-center justify-center gap-1.5"
-                >
-                  {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-purple-400" />}
-                  {copied ? 'Copied!' : 'Copy Batch ID'}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handlePrintLabel}
-                  className="py-2.5 px-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold border border-white/15 transition flex items-center justify-center gap-1.5"
-                >
-                  <Printer className="w-4 h-4 text-yellow-400" /> Print Label
-                </button>
-
-                <button
-                  onClick={() => {
-                    const batchToVerify = activeQrData || form.batchNumber;
-                    navigate(`/medishare/verify?batch=${encodeURIComponent(batchToVerify)}`);
-                  }}
-                  className="py-2.5 px-3 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-xl text-xs font-semibold border border-green-500/30 transition flex items-center justify-center gap-1.5"
-                >
-                  <ShieldCheck className="w-4 h-4 text-green-400" /> Verify This QR
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={handleDownloadPNG}
+                className="py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-md text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" /> Download PNG
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyBatch}
+                className="py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-md text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Copied' : 'Copy Batch ID'}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="py-2 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-md text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print Label
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/medishare/verify?batch=${encodeURIComponent(activeQrData || form.batchNumber)}`)
+                }
+                className="py-2 px-3 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" /> Verify Batch
+              </button>
             </div>
-
-            {/* Smart Contract Note */}
-            <div className="mt-6 text-[11px] text-gray-500 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-pink-400" />
-              <span>Standard ISO/IEC 18004 QR • 256-bit Keccak Hash Serialization</span>
-            </div>
-
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-const Reports = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [showRawJson, setShowRawJson] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError(null);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      setError("Please select a PDF file to analyze.");
-      return;
-    }
-    setUploading(true);
-    setError(null);
-    try {
-      const res = await medishareService.uploadReport(file);
-      setResult(res.data);
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      setError(err.response?.data?.error || err.message || "Failed to analyze PDF file");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const getStructuredData = () => {
-    if (!result) return null;
-    const rawObj = result.result || result;
-    if (typeof rawObj === 'object' && rawObj !== null) return rawObj;
-    if (typeof rawObj === 'string') {
-      try {
-        const cleaned = rawObj.replace(/```json\n?|```/g, "").trim();
-        return JSON.parse(cleaned);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const data = getStructuredData();
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 text-white">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-display font-bold">AI Medical Report Analysis</h1>
-          <p className="text-gray-400 text-sm">Powered by Gemini 2.5 Flash Multimodal Vision & Clinical NLP</p>
-        </div>
-        {result && (
-          <button 
-            onClick={() => setShowRawJson(!showRawJson)} 
-            className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-gray-300 transition"
-          >
-            <Code className="w-3.5 h-3.5" />
-            {showRawJson ? 'Show Formatted View' : 'View Raw JSON'}
-          </button>
-        )}
-      </div>
-      
-      {!result ? (
-        <div className="bg-black/40 backdrop-blur-md p-10 rounded-2xl shadow-lg border border-white/20 border-dashed flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors">
-          <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mb-4 border border-blue-500/30">
-            <Upload className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-medium mb-2 text-white">Upload Medical Report (PDF)</h3>
-          <p className="text-gray-400 text-sm mb-6 max-w-sm">
-            Select a PDF medical report. Our Gemini AI backend will process and extract medical insights.
-          </p>
-
-          <input 
-            type="file" 
-            accept="application/pdf" 
-            onChange={handleFileChange}
-            className="mb-4 text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
-          />
-
-          {error && <div className="text-red-400 text-sm mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</div>}
-
-          <button 
-            onClick={handleUpload}
-            disabled={uploading || !file}
-            className="px-6 py-2 bg-white text-black rounded-full font-medium flex items-center gap-2 disabled:opacity-50 hover:bg-gray-200 transition-colors"
-          >
-            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Analyze with Gemini AI'}
-          </button>
-        </div>
-      ) : showRawJson || !data ? (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-          <div className="bg-black/40 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/10">
-            <h3 className="font-medium text-gray-400 text-sm uppercase tracking-wider mb-2">Gemini AI Raw JSON Output</h3>
-            <div className="text-gray-200 whitespace-pre-wrap font-mono text-xs bg-black/50 p-4 rounded-xl border border-white/5 overflow-x-auto">
-              {typeof result?.result === 'string' ? result.result : JSON.stringify(result, null, 2)}
-            </div>
-          </div>
-          <button onClick={() => { setResult(null); setFile(null); }} className="text-gray-400 hover:text-white text-sm transition-colors">
-            Upload another report
-          </button>
-        </motion.div>
-      ) : (
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          
-          {/* Patient Profile Card */}
-          {data.patientInfo && (
-            <div className="bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-black/40 backdrop-blur-md p-6 rounded-2xl border border-blue-500/30 shadow-xl flex flex-wrap justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-inner">
-                  <User className="w-7 h-7" />
-                </div>
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-blue-400">Patient Profile</div>
-                  <h2 className="text-2xl font-bold text-white tracking-wide">{data.patientInfo.name || 'Patient'}</h2>
-                  <div className="flex items-center gap-3 text-sm text-gray-300 mt-1">
-                    {data.patientInfo.age && <span className="bg-white/10 px-2.5 py-0.5 rounded-md border border-white/10">Age: {data.patientInfo.age}</span>}
-                    {data.patientInfo.gender && <span className="bg-white/10 px-2.5 py-0.5 rounded-md border border-white/10">Gender: {data.patientInfo.gender}</span>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1.5 rounded-full text-xs font-semibold">
-                  <FileCheck className="w-4 h-4" /> AI Analysis Complete
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Diagnoses & Prescribed Medications */}
-          {Array.isArray(data.diagnoses) && data.diagnoses.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-medishare-accent" /> Clinical Diagnoses & Medications
-              </h3>
-
-              <div className="grid grid-cols-1 gap-4">
-                {data.diagnoses.map((item: any, idx: number) => (
-                  <motion.div 
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.08 }}
-                    className="bg-black/50 backdrop-blur-md p-5 rounded-2xl border border-white/10 hover:border-medishare-accent/40 transition shadow-lg space-y-3"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Condition #{idx + 1}</div>
-                        <h4 className="text-lg font-semibold text-white">{item.condition}</h4>
-                      </div>
-                      <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Prescribed
-                      </span>
-                    </div>
-
-                    {item.medication && (
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center border border-pink-500/30">
-                            <Pill className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-medishare-accent text-base">{item.medication.name}</div>
-                            <div className="text-xs text-gray-400">Dosage Instructions</div>
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium bg-black/40 text-gray-200 px-3.5 py-1.5 rounded-lg border border-white/10">
-                          {item.medication.dosage}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Key Insights & Recommendations */}
-          {((Array.isArray(data.keyInsights) && data.keyInsights.length > 0) || (Array.isArray(data.recommendations) && data.recommendations.length > 0)) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Array.isArray(data.keyInsights) && data.keyInsights.length > 0 && (
-                <div className="bg-black/40 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-3">
-                  <h4 className="text-base font-bold text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-400" /> Key Insights
-                  </h4>
-                  <ul className="space-y-2">
-                    {data.keyInsights.map((insight: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span>{insight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {Array.isArray(data.recommendations) && data.recommendations.length > 0 && (
-                <div className="bg-black/40 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-3">
-                  <h4 className="text-base font-bold text-white flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-400" /> AI Recommendations
-                  </h4>
-                  <ul className="space-y-2">
-                    {data.recommendations.map((rec: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Bottom Action Bar */}
-          <div className="flex justify-between items-center pt-2">
-            <button 
-              onClick={() => { setResult(null); setFile(null); }} 
-              className="px-5 py-2.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition text-sm flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" /> Upload Another Medical Report
-            </button>
-
-            <button 
-              onClick={() => setShowRawJson(true)} 
-              className="text-xs text-gray-400 hover:text-white underline transition"
-            >
-              View Raw JSON Structure
-            </button>
-          </div>
-
-        </motion.div>
-      )}
-    </div>
-  );
-};
-
+// --- VERIFY BATCH & ON-CHAIN CONTRACT ACTIONS ---
 const Verify = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -983,24 +685,26 @@ const Verify = () => {
 
   const [batch, setBatch] = useState(initialBatch);
   const [verifying, setVerifying] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(false);
   const [html5QrCodeScanner, setHtml5QrCodeScanner] = useState<Html5Qrcode | null>(null);
 
-  const scannerRegionId = "qr-reader-region";
+  const scannerRegionId = 'qr-reader-region';
 
   const runVerification = async (batchNum: string) => {
     if (!batchNum.trim()) return;
     setVerifying(true);
     setError(null);
-    setResult(null);
+    setActionMsg(null);
     try {
       const res = await medishareService.verifyBatch(batchNum.trim());
       setResult(res.data);
     } catch (err: any) {
-      console.error("Verification error:", err);
-      setError(err.response?.data?.error || "Batch record not found or smart contract unavailable");
+      setResult(null);
+      setError(err.response?.data?.error || 'Batch not found on blockchain or database.');
     } finally {
       setVerifying(false);
     }
@@ -1013,15 +717,56 @@ const Verify = () => {
     }
   }, [initialBatch]);
 
-  // Start / Stop Camera Scanner
+  const handleToggleVerifyOnChain = async (status: boolean) => {
+    if (!batch.trim()) return;
+    setActionLoading('verify');
+    setActionMsg(null);
+    try {
+      await medishareService.verifyMedicineBatch(batch.trim(), status);
+      setActionMsg({
+        type: 'ok',
+        text: `Smart contract verifyMedicine("${batch.trim()}", ${status}) confirmed.`,
+      });
+      await runVerification(batch.trim());
+    } catch (err: any) {
+      setActionMsg({
+        type: 'err',
+        text: err.response?.data?.error || err.message || 'Contract verify failed.',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleMintNFT = async () => {
+    if (!batch.trim()) return;
+    setActionLoading('mint');
+    setActionMsg(null);
+    try {
+      const res = await medishareService.mintNFT(batch.trim());
+      setActionMsg({
+        type: 'ok',
+        text: `Minted ERC-721 Token ID #${res.data.tokenId} (Tx: ${res.data.transactionHash})`,
+      });
+      await runVerification(batch.trim());
+    } catch (err: any) {
+      setActionMsg({
+        type: 'err',
+        text: err.response?.data?.error || err.message || 'NFT minting failed (ensure batch is verified on-chain first).',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const toggleCameraScanner = async () => {
     if (scannerActive) {
       if (html5QrCodeScanner) {
         try {
           await html5QrCodeScanner.stop();
           html5QrCodeScanner.clear();
-        } catch (e) {
-          console.warn("Scanner stop warning:", e);
+        } catch {
+          // Ignore stop errors
         }
       }
       setScannerActive(false);
@@ -1033,10 +778,9 @@ const Verify = () => {
           const qrScanner = new Html5Qrcode(scannerRegionId);
           setHtml5QrCodeScanner(qrScanner);
           await qrScanner.start(
-            { facingMode: "environment" },
+            { facingMode: 'environment' },
             { fps: 10, qrbox: { width: 250, height: 250 } },
             (decodedText) => {
-              console.log("Scanned QR Code:", decodedText);
               setBatch(decodedText);
               qrScanner.stop().then(() => {
                 qrScanner.clear();
@@ -1044,119 +788,93 @@ const Verify = () => {
                 runVerification(decodedText);
               });
             },
-            () => {}
+            () => { }
           );
-        } catch (err: any) {
-          console.error("Camera start error:", err);
-          setError("Could not access camera for QR scan. You can upload an image or type the batch number.");
+        } catch {
+          setError('Unable to access camera. Upload a QR image or enter the batch number manually.');
           setScannerActive(false);
         }
-      }, 200);
+      }, 150);
     }
   };
 
-  // Handle QR image file upload
-  const handleQrFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQrFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
       try {
-        const html5Qr = new Html5Qrcode("hidden-file-qr-reader");
-        const decodedText = await html5Qr.scanFile(file, true);
+        const html5Qr = new Html5Qrcode('hidden-file-qr-reader');
+        const decodedText = await html5Qr.scanFile(e.target.files[0], true);
         setBatch(decodedText);
         runVerification(decodedText);
-      } catch (err) {
-        console.error("QR File scan error:", err);
-        setError("Could not find a valid QR code in the uploaded image.");
+      } catch {
+        setError('Could not decode a valid QR code from the uploaded image.');
       }
     }
   };
 
+  const details = result?.batchDetails;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8 flex flex-col items-center text-white">
-      <div className="text-center">
-        <h1 className="text-3xl font-display font-bold mb-2">Verify Medicine Authenticity</h1>
-        <p className="text-gray-400 text-sm max-w-lg mx-auto">
-          Scan packaging QR codes or query database & blockchain records to inspect tamper-proof authenticity.
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-bold text-slate-900">Verify Batch &amp; Mint NFT</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Query <code className="font-mono text-xs">verifyBatch()</code> on MediShare.sol, approve batch verification, and mint ERC-721 certificates.
         </p>
       </div>
 
-      <div className="w-full bg-black/40 backdrop-blur-md p-8 rounded-3xl shadow-xl border border-white/10 text-center space-y-6">
-        
-        {/* Scanner Box / Viewport */}
-        <div className="relative">
-          {scannerActive ? (
-            <div className="w-full max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-medishare-accent bg-black">
-              <div id={scannerRegionId} className="w-full"></div>
-              <button 
-                onClick={toggleCameraScanner}
-                className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold transition"
-              >
-                Close Camera Scanner
-              </button>
-            </div>
-          ) : (
-            <div className="w-56 h-56 bg-white/5 border-2 border-dashed border-white/20 mx-auto rounded-3xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-medishare-accent/50 transition duration-300">
-              <QrCode className="w-16 h-16 text-gray-500 group-hover:text-medishare-accent group-hover:scale-110 transition-all duration-300" />
-              <div className="text-xs text-gray-400 mt-3">Ready to Scan</div>
-            </div>
-          )}
-        </div>
-
-        {/* Scan Actions */}
-        <div className="flex flex-wrap justify-center gap-3">
-          <button
-            onClick={toggleCameraScanner}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-              scannerActive 
-                ? 'bg-red-500/20 text-red-300 border border-red-500/30' 
-                : 'bg-medishare-accent/20 text-medishare-accent hover:bg-medishare-accent/30 border border-medishare-accent/30'
-            }`}
-          >
-            <Camera className="w-4 h-4" /> {scannerActive ? 'Stop Scanner' : 'Scan with Camera'}
-          </button>
-
-          <label className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 cursor-pointer flex items-center gap-2 transition">
-            <Upload className="w-4 h-4" /> Upload QR Image
-            <input type="file" accept="image/*" onChange={handleQrFileUpload} className="hidden" />
-          </label>
-
-          <Link 
-            to="/medishare/generate"
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-2 transition"
-          >
-            <PlusCircle className="w-4 h-4" /> Generate New QR
-          </Link>
-        </div>
-
-        {/* Hidden container for file scan */}
-        <div id="hidden-file-qr-reader" style={{ display: 'none' }}></div>
-
-        {/* Manual Input Bar */}
-        <div className="flex gap-2 pt-2">
-          <input 
-            type="text" 
-            placeholder="Enter Batch Number (e.g. BATCH-VERIFY-001)" 
+      <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-5">
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            placeholder="Enter Batch Number (e.g. BATCH-MS-12345)"
             value={batch}
             onChange={(e) => setBatch(e.target.value)}
-            className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl border border-white/10 focus:outline-none focus:ring-2 focus:ring-medishare-accent placeholder-gray-500 text-sm font-mono"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') runVerification(batch);
+            }}
+            className="flex-1 min-w-[220px] px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-mono text-slate-900 focus:outline-none focus:border-teal-600"
           />
-          <button 
+          <button
+            type="button"
             onClick={() => runVerification(batch)}
             disabled={verifying || !batch.trim()}
-            className="px-6 py-3 bg-white text-black font-bold rounded-xl disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 transition-colors text-sm"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-md text-sm font-medium flex items-center gap-1.5"
           >
-            {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+            {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            Query Contract
           </button>
+          <button
+            type="button"
+            onClick={toggleCameraScanner}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-md text-xs font-medium flex items-center gap-1.5"
+          >
+            <Camera className="w-4 h-4" /> {scannerActive ? 'Stop Camera' : 'Scan QR'}
+          </button>
+          <label className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-md text-xs font-medium cursor-pointer flex items-center gap-1.5">
+            <Upload className="w-4 h-4" /> Upload QR
+            <input type="file" accept="image/*" onChange={handleQrFileUpload} className="hidden" />
+          </label>
         </div>
 
-        {/* Quick Sample Batch Buttons */}
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-500 flex-wrap">
-          <span>Try live batch from MongoDB:</span>
-          {['BATCH-VERIFY-001', 'BATCH-VERIFY-002', 'BATCH-LIVE-COMBIFLAM'].map(sample => (
+        <div id="hidden-file-qr-reader" style={{ display: 'none' }} />
+
+        {scannerActive && (
+          <div className="max-w-sm mx-auto border border-slate-300 rounded-md overflow-hidden bg-black">
+            <div id={scannerRegionId} className="w-full" />
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span>Sample IDs:</span>
+          {['BATCH-VERIFY-001', 'BATCH-VERIFY-002', 'BATCH-LIVE-COMBIFLAM'].map((sample) => (
             <button
               key={sample}
-              onClick={() => { setBatch(sample); runVerification(sample); }}
-              className="text-gray-400 hover:text-white underline font-mono text-[11px]"
+              type="button"
+              onClick={() => {
+                setBatch(sample);
+                runVerification(sample);
+              }}
+              className="font-mono underline hover:text-slate-900"
             >
               {sample}
             </button>
@@ -1165,90 +883,264 @@ const Verify = () => {
       </div>
 
       {error && (
-        <div className="w-full p-4 rounded-2xl bg-red-900/30 border border-red-500/30 text-red-300 text-sm flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+        <div className="p-4 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <AnimatePresence>
-        {result?.batchDetails && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`w-full p-6 sm:p-8 rounded-3xl flex flex-col md:flex-row items-start gap-6 backdrop-blur-md shadow-2xl ${
-              result.batchDetails.isValid 
-                ? 'bg-emerald-950/40 border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.15)]' 
-                : 'bg-yellow-950/40 border border-yellow-500/40 shadow-[0_0_30px_rgba(234,179,8,0.15)]'
+      {actionMsg && (
+        <div
+          className={`p-3.5 rounded-md border text-sm font-mono ${actionMsg.type === 'ok'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-red-50 border-red-200 text-red-800'
             }`}
-          >
-            <div className={`p-4 rounded-2xl flex-shrink-0 ${
-              result.batchDetails.isValid 
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-            }`}>
-              <ShieldCheck className="w-10 h-10" />
+        >
+          {actionMsg.text}
+        </div>
+      )}
+
+      {details && (
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+            <div>
+              <div className="text-xs font-mono text-slate-500">BATCH: {batch}</div>
+              <h2 className="text-lg font-bold text-slate-900">
+                {details.isValid ? 'Valid & Active Batch' : 'Invalid / Expired Batch'}
+              </h2>
             </div>
+            <span
+              className={`px-3 py-1 rounded text-xs font-mono font-bold border ${details.isValid
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}
+            >
+              {details.isValid ? 'VALID' : 'INACTIVE / EXPIRED'}
+            </span>
+          </div>
 
-            <div className="space-y-4 flex-1 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Cryptographic & MongoDB Verification</div>
-                  <h3 className={`text-2xl font-bold tracking-tight ${result.batchDetails.isValid ? 'text-emerald-400' : 'text-yellow-400'}`}>
-                    {result.batchDetails.isValid ? 'GENUINE & VERIFIED MEDICINE' : 'BATCH RECORD FOUND (ACTION NEEDED)'}
-                  </h3>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  result.batchDetails.isValid ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                }`}>
-                  {result.batchDetails.isValid ? 'VALID ASSET' : 'PENDING / EXPIRED'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                  <span className="text-gray-400 block mb-1">Manufacturer / Node Address:</span>
-                  <span className="font-mono text-blue-300 text-[11px] break-all">{result.batchDetails.manufacturer || '0x7099...79C8'}</span>
-                </div>
-
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                  <span className="text-gray-400 block mb-1">Authenticity Proof:</span>
-                  <span className="font-semibold text-white">{result.batchDetails.isAuthenticated ? 'Authenticated On-Chain' : 'Active Quality Verification'}</span>
-                </div>
-
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                  <span className="text-gray-400 block mb-1">Verification Status:</span>
-                  <span className="font-semibold text-white">{result.batchDetails.isVerified ? 'Verified in MongoDB & Node' : 'Unverified'}</span>
-                </div>
-
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                  <span className="text-gray-400 block mb-1">NFT Token Record:</span>
-                  <span className="font-mono text-purple-300 font-semibold">{result.batchDetails.tokenId || '0'}</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-between items-center text-xs text-gray-400">
-                <span>Batch Query: <strong className="text-white font-mono">{batch}</strong></span>
-                <Link to="/medishare/generate" className="text-medishare-accent hover:underline flex items-center gap-1">
-                  Create another QR <ExternalLink className="w-3 h-3" />
-                </Link>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">isVerified (Contract)</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">{String(details.isVerified)}</div>
+            </div>
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">isAuthenticated (NFT Minted)</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">{String(details.isAuthenticated)}</div>
+            </div>
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">isActive</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">{String(details.isActive)}</div>
+            </div>
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">ERC-721 Token ID</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">
+                {details.tokenId && details.tokenId !== '0' ? `#${details.tokenId}` : '0 (Not Minted)'}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">isNFTValid</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">{String(details.isNFTValid)}</div>
+            </div>
+            <div className="p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">Expiry Timestamp</div>
+              <div className="font-mono font-bold text-slate-900 mt-1">
+                {details.expiryDate
+                  ? `${new Date(Number(details.expiryDate) * 1000).toISOString().split('T')[0]} (${details.expiryDate})`
+                  : 'N/A'}
+              </div>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3 p-3 rounded bg-slate-50 border border-slate-200">
+              <div className="text-slate-500">Manufacturer Address</div>
+              <div className="font-mono text-slate-900 mt-1 break-all">{details.manufacturer}</div>
+            </div>
+          </div>
+
+          <div className="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-slate-600">
+              On-Chain Owner Actions (requires Hardhat node running):
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={actionLoading !== null}
+                onClick={() => handleToggleVerifyOnChain(!details.isVerified)}
+                className="px-3.5 py-1.5 rounded bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-xs font-medium disabled:opacity-50"
+              >
+                {actionLoading === 'verify'
+                  ? 'Sending Tx...'
+                  : details.isVerified
+                    ? 'Revoke Verify (verifyMedicine)'
+                    : 'Approve Batch (verifyMedicine)'}
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading !== null || details.tokenId !== '0'}
+                onClick={handleMintNFT}
+                className="px-3.5 py-1.5 rounded bg-teal-700 hover:bg-teal-800 text-white text-xs font-medium disabled:opacity-50"
+              >
+                {actionLoading === 'mint'
+                  ? 'Minting...'
+                  : details.tokenId && details.tokenId !== '0'
+                    ? `NFT #${details.tokenId} Minted`
+                    : 'Mint ERC-721 NFT (authenticateBatch)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
+// --- ERC-721 NFT LEDGER ---
+const NFTLedger = () => {
+  const [manufacturer, setManufacturer] = useState('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+  const [nfts, setNfts] = useState<string[] | null>(null);
+  const [nftLoading, setNftLoading] = useState(false);
+  const [nftError, setNftError] = useState<string | null>(null);
+
+  const [tokenIdInput, setTokenIdInput] = useState('1');
+  const [tokenStatus, setTokenStatus] = useState<{ tokenId: string; valid: boolean } | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
+  const fetchManufacturerNFTs = async (e?: FormEvent) => {
+    e?.preventDefault();
+    setNftLoading(true);
+    setNftError(null);
+    try {
+      const res = await medishareService.getManufacturerNFTs(manufacturer.trim());
+      setNfts(Array.isArray(res.data?.nfts) ? res.data.nfts : []);
+    } catch (err: any) {
+      setNfts(null);
+      setNftError(err.response?.data?.error || err.message || 'Failed to query manufacturer NFTs.');
+    } finally {
+      setNftLoading(false);
+    }
+  };
+
+  const checkToken = async (idToCheck: string) => {
+    setTokenError(null);
+    setTokenStatus(null);
+    try {
+      const res = await medishareService.checkNFTStatus(idToCheck.trim());
+      setTokenStatus({ tokenId: idToCheck.trim(), valid: Boolean(res.data?.valid) });
+    } catch (err: any) {
+      setTokenError(err.response?.data?.error || err.message || 'Failed to check token status.');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-bold text-slate-900">ERC-721 NFT Ledger (MediAuthToken / MAT)</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Inspect minted authentication NFTs via <code className="font-mono text-xs">getManufacturerNFTs()</code> and{' '}
+          <code className="font-mono text-xs">isNFTValid()</code>.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+          <h2 className="text-sm font-bold text-slate-900">Manufacturer Minted Tokens</h2>
+          <form onSubmit={fetchManufacturerNFTs} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                Manufacturer Address
+              </label>
+              <input
+                type="text"
+                value={manufacturer}
+                onChange={(e) => setManufacturer(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={nftLoading}
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-xs font-medium flex items-center gap-1.5"
+            >
+              {nftLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-3.5 h-3.5" />}
+              Fetch Manufacturer NFTs
+            </button>
+          </form>
+
+          {nftError && <div className="text-xs text-red-700 bg-red-50 border border-red-200 p-3 rounded">{nftError}</div>}
+
+          {nfts !== null && (
+            <div className="border-t border-slate-200 pt-3">
+              <div className="text-xs text-slate-600 mb-2">Found {nfts.length} minted token(s):</div>
+              {nfts.length === 0 ? (
+                <p className="text-xs text-slate-500">No NFTs minted for this address yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {nfts.map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setTokenIdInput(id);
+                        checkToken(id);
+                      }}
+                      className="px-3 py-1.5 rounded bg-slate-100 hover:bg-teal-50 border border-slate-300 hover:border-teal-400 font-mono text-xs text-slate-900"
+                    >
+                      MAT #{id}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+          <h2 className="text-sm font-bold text-slate-900">Check Token Validity (isNFTValid)</h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Token ID (e.g. 1)"
+              value={tokenIdInput}
+              onChange={(e) => setTokenIdInput(e.target.value)}
+              className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-mono text-slate-900"
+            />
+            <button
+              type="button"
+              onClick={() => checkToken(tokenIdInput)}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-md text-xs font-medium"
+            >
+              Check Status
+            </button>
+          </div>
+
+          {tokenError && (
+            <div className="text-xs text-red-700 bg-red-50 border border-red-200 p-3 rounded">{tokenError}</div>
+          )}
+
+          {tokenStatus && (
+            <div
+              className={`p-4 rounded border text-sm font-mono ${tokenStatus.valid
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
+                }`}
+            >
+              Token #{tokenStatus.tokenId} → isNFTValid: <strong>{String(tokenStatus.valid)}</strong>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- DONATIONS ---
 const Donations = () => {
   const [donations, setDonations] = useState<any[]>([]);
   const [verifiedMeds, setVerifiedMeds] = useState<any[]>([]);
-  const [medsLoading, setMedsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedQtyMap, setSelectedQtyMap] = useState<{ [key: string]: number }>({});
+  const [selectedQtyMap, setSelectedQtyMap] = useState<Record<string, number>>({});
   const [quickDonatingId, setQuickDonatingId] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     medicineName: '',
@@ -1256,33 +1148,24 @@ const Donations = () => {
     quantity: '',
     brand: '',
     rawDate: '',
-    dateFormat: 'YYYY-MM-DD',
-    expiryDate: '',
-    manufacturerDetails: ''
+    manufacturerDetails: '',
   });
-  const [msg, setMsg] = useState<string | null>(null);
 
   const fetchDonationsAndMeds = async () => {
     setLoading(true);
-    setMedsLoading(true);
     try {
       const [donRes, medsRes] = await Promise.allSettled([
         medishareService.getAllDonations(),
-        medishareService.getMedicines()
+        medishareService.getMedicines(),
       ]);
-
       if (donRes.status === 'fulfilled' && Array.isArray(donRes.value.data)) {
         setDonations(donRes.value.data);
       }
-
       if (medsRes.status === 'fulfilled' && Array.isArray(medsRes.value.data)) {
         setVerifiedMeds(medsRes.value.data);
       }
-    } catch (err) {
-      console.error("Fetch donations/meds error:", err);
     } finally {
       setLoading(false);
-      setMedsLoading(false);
     }
   };
 
@@ -1291,63 +1174,39 @@ const Donations = () => {
   }, []);
 
   const handleQtyChange = (medId: string, delta: number) => {
-    setSelectedQtyMap(prev => {
-      const current = prev[medId] || 10;
-      const next = Math.max(1, current + delta);
-      return { ...prev, [medId]: next };
-    });
+    setSelectedQtyMap((prev) => ({
+      ...prev,
+      [medId]: Math.max(1, (prev[medId] || 10) + delta),
+    }));
   };
 
-  const handleSetExactQty = (medId: string, qty: number) => {
-    setSelectedQtyMap(prev => ({ ...prev, [medId]: qty }));
-  };
-
-  // Quick 1-Click Donate of Verified Medicine
   const handleQuickDonate = async (med: any) => {
     const qtyToDonate = selectedQtyMap[med._id] || 10;
     setQuickDonatingId(med._id);
     setMsg(null);
-
     try {
       await medishareService.submitDonation({
         medicineName: med.name,
         batchNumber: med.batchNumber || `BATCH-VER-${Math.floor(1000 + Math.random() * 9000)}`,
         quantity: Number(qtyToDonate),
         brand: med.brand || 'Verified Pharma',
-        expiryDate: med.expirationDate ? (typeof med.expirationDate === 'string' ? med.expirationDate.split('T')[0] : '2027-12-31') : '2027-12-31',
-        manufacturerDetails: med.manufacturerDetails || med.manufacturer || 'Certified Quality Facility'
+        expiryDate: med.expirationDate
+          ? typeof med.expirationDate === 'string'
+            ? med.expirationDate.split('T')[0]
+            : '2027-12-31'
+          : '2027-12-31',
+        manufacturerDetails: med.manufacturerDetails || med.manufacturer || 'Certified Facility',
       });
-
-      setMsg(`Successfully donated ${qtyToDonate} units of "${med.name}" to MongoDB donation pool!`);
-      const donRes = await medishareService.getAllDonations().catch(() => ({ data: [] }));
-      if (Array.isArray(donRes.data)) setDonations(donRes.data);
+      setMsg(`Donated ${qtyToDonate} units of "${med.name}".`);
+      fetchDonationsAndMeds();
     } catch (err: any) {
-      console.error("Quick donation error:", err);
-      setMsg(err.response?.data?.error || err.message || `Recorded donation of ${qtyToDonate} units.`);
+      setMsg(err.response?.data?.error || err.message || 'Donation submission failed.');
     } finally {
       setQuickDonatingId(null);
     }
   };
 
-  // Pre-fill form from selected verified med
-  const handlePrefillForm = (med: any) => {
-    const qty = selectedQtyMap[med._id] || 10;
-    const expDate = med.expirationDate ? (typeof med.expirationDate === 'string' ? med.expirationDate.split('T')[0] : '2027-12-31') : '2027-12-31';
-    setForm({
-      medicineName: med.name,
-      batchNumber: med.batchNumber || `BATCH-${Math.floor(1000 + Math.random() * 9000)}`,
-      quantity: String(qty),
-      brand: med.brand || 'Generic Pharma',
-      rawDate: expDate,
-      dateFormat: 'YYYY-MM-DD',
-      expiryDate: expDate,
-      manufacturerDetails: med.manufacturerDetails || med.manufacturer || 'Approved Manufacturing Unit'
-    });
-    const el = document.getElementById('custom-donation-form');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleCustomSubmit = async (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setMsg(null);
@@ -1357,405 +1216,332 @@ const Donations = () => {
         batchNumber: form.batchNumber.trim(),
         quantity: Number(form.quantity),
         brand: form.brand.trim(),
-        expiryDate: form.rawDate || form.expiryDate,
-        manufacturerDetails: form.manufacturerDetails.trim()
+        expiryDate: form.rawDate,
+        manufacturerDetails: form.manufacturerDetails.trim(),
       });
-      setMsg(`Custom donation of ${form.quantity} units of "${form.medicineName}" saved to MongoDB!`);
-      setForm({ medicineName: '', batchNumber: '', quantity: '', brand: '', rawDate: '', dateFormat: 'YYYY-MM-DD', expiryDate: '', manufacturerDetails: '' });
+      setMsg(`Submitted donation of ${form.quantity} units of "${form.medicineName}".`);
+      setForm({
+        medicineName: '',
+        batchNumber: '',
+        quantity: '',
+        brand: '',
+        rawDate: '',
+        manufacturerDetails: '',
+      });
       fetchDonationsAndMeds();
     } catch (err: any) {
-      console.error("Donation submit error:", err);
-      setMsg(err.response?.data?.error || err.message || "Failed to submit donation.");
+      setMsg(err.response?.data?.error || err.message || 'Failed to submit donation.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 text-white">
-      <div className="flex flex-wrap justify-between items-center gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-3xl font-display font-bold flex items-center gap-3">
-            <HeartHandshake className="w-8 h-8 text-purple-400" />
-            Medicine Redistribution & Donations
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Real-time MongoDB verified medicine donation pool for NGOs and community clinics.
+          <h1 className="text-2xl font-bold text-slate-900">Surplus Medicine Donations</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Donate verified batches or submit unlisted medicines to the MongoDB donation pool.
           </p>
         </div>
         <button
+          type="button"
           onClick={fetchDonationsAndMeds}
-          className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-xl text-xs flex items-center gap-2 transition"
+          className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-md text-xs font-medium text-slate-700 flex items-center gap-1.5"
         >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh MongoDB Data
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
       </div>
 
       {msg && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/40 text-purple-200 text-sm flex items-center gap-3 shadow-lg"
-        >
-          <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0" />
-          <span>{msg}</span>
-        </motion.div>
+        <div className="p-3.5 rounded-md bg-teal-50 border border-teal-200 text-teal-900 text-sm">
+          {msg}
+        </div>
       )}
 
-      {/* SECTION 1: VERIFIED MEDICINES (FROM MONGODB) WITH DIRECT AMOUNT SELECTOR & DONATE BUTTON */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              Verified Medicines from MongoDB Database
-            </h2>
-            <p className="text-xs text-gray-400">Select quantity of units and click donate to contribute directly to verified pool.</p>
-          </div>
-          <span className="text-xs px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-semibold">
-            {verifiedMeds.length} Medicines in Database
-          </span>
-        </div>
+      {/* Available Verified Medicines */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+          Registered Medicines ({verifiedMeds.length})
+        </h2>
 
-        {medsLoading ? (
-          <div className="p-8 text-center text-gray-400 flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" /> Loading MongoDB medicines...
+        {loading ? (
+          <div className="text-sm text-slate-500 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
         ) : verifiedMeds.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 bg-black/40 rounded-2xl border border-white/10">
-            No medicines found in database yet. <Link to="/medishare/generate" className="text-pink-400 underline">Generate QR / Register Medicine</Link> to add some!
+          <div className="p-6 bg-white border border-slate-200 rounded-lg text-sm text-slate-500">
+            No medicines in database yet.{' '}
+            <Link to="/medishare/generate" className="text-teal-700 underline">
+              Register a batch first
+            </Link>
+            .
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {verifiedMeds.map((med: any) => {
               const currentQty = selectedQtyMap[med._id] || 10;
-              const isDonating = quickDonatingId === med._id;
-              const formattedExp = med.expirationDate ? (typeof med.expirationDate === 'string' ? med.expirationDate.split('T')[0] : '2028-12-31') : '2028-12-31';
-
               return (
-                <motion.div
+                <div
                   key={med._id}
-                  whileHover={{ y: -3 }}
-                  className="bg-black/50 backdrop-blur-md p-5 rounded-2xl border border-white/10 hover:border-purple-500/40 transition shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden group"
+                  className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between gap-3"
                 >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> MongoDB Live
-                      </span>
-                      <button 
-                        onClick={() => handlePrefillForm(med)}
-                        title="Edit in full form"
-                        className="text-gray-500 hover:text-white transition"
-                      >
-                        <ArrowUpRight className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <h3 className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">
-                      {med.name}
-                    </h3>
-                    
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <div>Brand: <strong className="text-gray-300">{med.brand || 'Verified Pharma'}</strong></div>
-                      <div>Batch: <span className="font-mono text-purple-300">{med.batchNumber || 'BATCH-DB'}</span></div>
-                      <div>Exp: <span className="text-gray-300">{formattedExp}</span></div>
+                  <div>
+                    <div className="font-semibold text-slate-900 text-sm">{med.name}</div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      Brand: {med.brand || 'Generic'} · Batch:{' '}
+                      <span className="font-mono text-slate-800">{med.batchNumber || 'N/A'}</span>
                     </div>
                   </div>
-
-                  {/* Quantity Stepper & Quick Chips */}
-                  <div className="space-y-3 pt-2 border-t border-white/5">
-                    <div className="flex items-center justify-between bg-white/5 p-1.5 rounded-xl border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-slate-300 rounded-md">
                       <button
+                        type="button"
                         onClick={() => handleQtyChange(med._id, -5)}
-                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition text-xs"
+                        className="p-1.5 hover:bg-slate-100 text-slate-700"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="font-bold font-mono text-sm text-pink-300">{currentQty} Units</span>
+                      <span className="px-2.5 text-xs font-mono font-semibold">{currentQty}</span>
                       <button
+                        type="button"
                         onClick={() => handleQtyChange(med._id, 5)}
-                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition text-xs"
+                        className="p-1.5 hover:bg-slate-100 text-slate-700"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
-                    {/* Quick quantity chips */}
-                    <div className="flex justify-between gap-1">
-                      {[5, 10, 25, 50].map(amt => (
-                        <button
-                          key={amt}
-                          onClick={() => handleSetExactQty(med._id, amt)}
-                          className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition ${
-                            currentQty === amt 
-                              ? 'bg-purple-500 text-white' 
-                              : 'bg-white/5 hover:bg-white/10 text-gray-400'
-                          }`}
-                        >
-                          +{amt}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Main Action Button */}
                     <button
+                      type="button"
                       onClick={() => handleQuickDonate(med)}
-                      disabled={isDonating}
-                      className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-purple-600/20 disabled:opacity-50"
+                      disabled={quickDonatingId === med._id}
+                      className="flex-1 py-1.5 px-3 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-xs font-medium disabled:opacity-50"
                     >
-                      {isDonating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Heart className="w-3.5 h-3.5" />}
-                      Donate {currentQty} Units
+                      {quickDonatingId === med._id ? 'Submitting...' : 'Donate'}
                     </button>
                   </div>
-
-                </motion.div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* SECTION 2: CUSTOM DONATION FORM (For unlisted unused medicines) */}
-      <div id="custom-donation-form" className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-xl border border-white/10 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/10 pb-4">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <PlusCircle className="w-5 h-5 text-medishare-accent" /> Donate Unlisted / Custom Medicines
-            </h3>
-            <p className="text-xs text-gray-400">Specify details for medicines not listed in the verified catalog.</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleCustomSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Medicine Name *</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Paracetamol 650mg" 
-              required 
-              value={form.medicineName} 
-              onChange={e => setForm({...form, medicineName: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Batch Number *</label>
-            <input 
-              type="text" 
-              placeholder="e.g. BATCH-DON-2026" 
-              required 
-              value={form.batchNumber} 
-              onChange={e => setForm({...form, batchNumber: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white font-mono"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Donation Quantity (Units) *</label>
-            <input 
-              type="number" 
-              placeholder="e.g. 50" 
-              required 
-              value={form.quantity} 
-              onChange={e => setForm({...form, quantity: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Brand / Manufacturer</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Cipla / Abbott" 
-              value={form.brand} 
-              onChange={e => setForm({...form, brand: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-            />
-          </div>
-
-          {/* Expiry Date with format selector */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Expiry Date *</label>
-              <select
-                value={form.dateFormat}
-                onChange={e => setForm({...form, dateFormat: e.target.value})}
-                className="bg-black/50 text-pink-300 border border-white/15 rounded-lg px-2 py-0.5 text-[11px]"
-              >
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              </select>
-            </div>
-            <input 
-              type="date" 
-              required 
-              value={form.rawDate} 
-              onChange={e => setForm({...form, rawDate: e.target.value, expiryDate: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Manufacturer Details *</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Certified Facility Details" 
-              required 
-              value={form.manufacturerDetails} 
-              onChange={e => setForm({...form, manufacturerDetails: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/5 rounded-xl border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-medishare-accent text-white"
-            />
-          </div>
-
-          <div className="md:col-span-2 pt-2">
-            <button 
-              type="submit" 
-              disabled={submitting} 
-              className="w-full py-3.5 bg-white text-black font-bold rounded-xl hover:bg-gray-200 disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm shadow-lg"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <HeartHandshake className="w-4 h-4" />} Submit Custom Donation
-            </button>
-          </div>
+      {/* Custom Donation Form */}
+      <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
+        <h2 className="text-sm font-bold text-slate-900">Submit Custom Donation</h2>
+        <form onSubmit={handleCustomSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="text"
+            required
+            placeholder="Medicine Name *"
+            value={form.medicineName}
+            onChange={(e) => setForm({ ...form, medicineName: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <input
+            type="text"
+            required
+            placeholder="Batch Number *"
+            value={form.batchNumber}
+            onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm font-mono"
+          />
+          <input
+            type="number"
+            required
+            placeholder="Quantity *"
+            value={form.quantity}
+            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <input
+            type="text"
+            placeholder="Brand"
+            value={form.brand}
+            onChange={(e) => setForm({ ...form, brand: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <input
+            type="date"
+            required
+            value={form.rawDate}
+            onChange={(e) => setForm({ ...form, rawDate: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <input
+            type="text"
+            required
+            placeholder="Manufacturer Details *"
+            value={form.manufacturerDetails}
+            onChange={(e) => setForm({ ...form, manufacturerDetails: e.target.value })}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="md:col-span-3 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-medium disabled:opacity-50"
+          >
+            {submitting ? 'Submitting...' : 'Submit Donation'}
+          </button>
         </form>
       </div>
 
-      {/* SECTION 3: DONATION RECORDS / HISTORY */}
-      <div className="bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-xl border border-white/10 space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <FileText className="w-5 h-5 text-medishare-accent" /> Active Donation Records (MongoDB)
-        </h3>
-
-        {loading ? (
-          <div className="text-gray-400 text-sm flex items-center gap-2 py-6"><Loader2 className="w-4 h-4 animate-spin" /> Loading donations...</div>
-        ) : donations.length === 0 ? (
-          <p className="text-gray-500 text-sm py-6 text-center">No donations recorded yet. Click on any verified medicine above to donate.</p>
+      {/* Donation History Table */}
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 font-bold text-sm text-slate-900">
+          Donation Records ({donations.length})
+        </div>
+        {donations.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">No donation records found.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {donations.map((d: any) => (
-              <div key={d._id} className="p-4 bg-white/5 rounded-2xl border border-white/10 flex justify-between items-center hover:border-white/20 transition">
-                <div className="space-y-1">
-                  <div className="font-semibold text-white text-sm">{d.medicine || d.medicineName} ({d.brand || 'Generic'})</div>
-                  <div className="text-xs text-gray-400">Batch: <span className="font-mono text-purple-300">{d.batchNumber}</span> | Qty: <strong className="text-white">{d.quantity} units</strong></div>
-                </div>
-                <span className={`px-3 py-1 text-xs rounded-full font-bold ${
-                  d.status === 'approved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                  d.status === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                }`}>
-                  {d.status || 'Verified Pool'}
-                </span>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 text-slate-500 uppercase bg-slate-50/50">
+                <tr>
+                  <th className="px-4 py-2.5">Medicine</th>
+                  <th className="px-4 py-2.5">Batch</th>
+                  <th className="px-4 py-2.5">Quantity</th>
+                  <th className="px-4 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {donations.map((d: any) => (
+                  <tr key={d._id}>
+                    <td className="px-4 py-2.5 font-medium text-slate-900">
+                      {d.medicine || d.medicineName} ({d.brand || 'Generic'})
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-slate-700">{d.batchNumber}</td>
+                    <td className="px-4 py-2.5">{d.quantity} units</td>
+                    <td className="px-4 py-2.5">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono uppercase">
+                        {d.status || 'pending'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-
     </div>
   );
 };
 
+// --- STORE ---
 const Store = () => {
   const [medicines, setMedicines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    medishareService.getMedicines()
-      .then(res => setMedicines(res.data || []))
-      .catch(err => console.error("Store error:", err))
+    medishareService
+      .getMedicines()
+      .then((res) => setMedicines(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setMedicines([]))
       .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 text-white">
-      <h1 className="text-2xl font-display font-bold">Medicine Marketplace (MongoDB Live)</h1>
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-bold text-slate-900">Medicine Store Inventory</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Registered medicines stored in MongoDB with linked batch IDs.
+        </p>
+      </div>
+
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /> Loading medicines from MongoDB...</div>
+        <div className="text-sm text-slate-500 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading medicines...
+        </div>
       ) : medicines.length === 0 ? (
-        <div className="bg-black/40 backdrop-blur-md p-12 rounded-2xl text-center border border-white/10 text-gray-400">
-          No medicines currently listed in the store inventory.
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-500">
+          No medicines listed in store inventory (ensure MongoDB is connected and add a batch).
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {medicines.map((med: any) => (
-            <div key={med._id} className="bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-white/10 space-y-3">
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-bold text-white">{med.name}</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold uppercase">
-                  Verified
-                </span>
-              </div>
-              <p className="text-xs text-gray-400">Brand: <span className="text-gray-200 font-medium">{med.brand || 'Generic Pharma'}</span></p>
-              <p className="text-xs text-gray-400">Batch: <span className="font-mono text-purple-300">{med.batchNumber || 'N/A'}</span></p>
-              <p className="text-sm text-gray-400">Price: <span className="text-green-400 font-semibold">${med.price || 20}</span></p>
-              <p className="text-sm text-gray-400">Stock: {med.quantity || 50} available</p>
-              <button className="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition">
-                Order Medicine
-              </button>
-            </div>
-          ))}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3">Medicine</th>
+                  <th className="px-4 py-3">Brand</th>
+                  <th className="px-4 py-3">Batch Number</th>
+                  <th className="px-4 py-3">Price</th>
+                  <th className="px-4 py-3">Stock</th>
+                  <th className="px-4 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {medicines.map((med: any) => (
+                  <tr key={med._id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{med.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{med.brand || 'Generic'}</td>
+                    <td className="px-4 py-3 font-mono text-slate-700">{med.batchNumber || 'N/A'}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">${med.price ?? 20}</td>
+                    <td className="px-4 py-3 text-slate-700">{med.quantity ?? 50}</td>
+                    <td className="px-4 py-3">
+                      {med.batchNumber && (
+                        <Link
+                          to={`/medishare/verify?batch=${encodeURIComponent(med.batchNumber)}`}
+                          className="inline-flex items-center gap-1 text-teal-700 hover:underline font-medium"
+                        >
+                          Verify <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-// Main Component
-const MediShare: React.FC = () => {
+// --- MAIN WORKSPACE SHELL ---
+const MediShare = () => {
   return (
-    <div className="w-full min-h-[calc(100vh-80px)] bg-black flex text-white font-sans relative overflow-hidden">
-      
-      {/* Dynamic Background Effect */}
-      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        <ColorBends
-          colors={["#FF9FFC", "#38bdf8", "#f472b6"]}
-          rotation={180}
-          speed={0.1}
-          scale={2.5}
-          frequency={0.5}
-          warpStrength={0.5}
-          mouseInfluence={0.2}
-          noise={0.1}
-          parallax={0.1}
-          iterations={1}
-          intensity={1}
-          bandWidth={8}
-          transparent
-        />
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
+      <aside className="w-full md:w-56 flex-shrink-0 space-y-1">
+        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">
+          Workspace
+        </div>
+        <SidebarLink to="/medishare" icon={LayoutDashboard}>
+          Overview
+        </SidebarLink>
+        <SidebarLink to="/medishare/generate" icon={QrCode}>
+          Register &amp; QR
+        </SidebarLink>
+        <SidebarLink to="/medishare/verify" icon={ShieldCheck}>
+          Verify &amp; Mint NFT
+        </SidebarLink>
+        <SidebarLink to="/medishare/nfts" icon={Award}>
+          NFT Ledger
+        </SidebarLink>
+        <SidebarLink to="/medishare/donations" icon={HeartHandshake}>
+          Donations
+        </SidebarLink>
+        <SidebarLink to="/medishare/store" icon={ShoppingBag}>
+          Medicine Store
+        </SidebarLink>
+      </aside>
 
-      {/* SIDEBAR */}
-      <div className="w-64 border-r border-white/10 bg-black/40 backdrop-blur-2xl p-6 hidden md:flex flex-col gap-2 z-10 shadow-[2px_0_30px_rgba(0,0,0,0.3)]">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-4">Menu</div>
-        <SidebarLink to="/medishare" icon={LayoutDashboard}>Overview</SidebarLink>
-        <SidebarLink to="/medishare/generate" icon={QrCode}>Generate QR Code</SidebarLink>
-        <SidebarLink to="/medishare/verify" icon={ShieldCheck}>Verify Medicine</SidebarLink>
-        <SidebarLink to="/medishare/reports" icon={FileText}>Medical Reports</SidebarLink>
-        <SidebarLink to="/medishare/donations" icon={HeartHandshake}>Donations</SidebarLink>
-        <SidebarLink to="/medishare/store" icon={ShoppingBag}>Medicine Store</SidebarLink>
-      </div>
-
-      {/* CONTENT */}
-      <div className="flex-1 p-8 overflow-y-auto z-10 relative">
+      <div className="flex-1 min-w-0">
         <Routes>
           <Route path="/" element={<Overview />} />
           <Route path="/generate" element={<GenerateQR />} />
           <Route path="/generate-qr" element={<GenerateQR />} />
           <Route path="/verify" element={<Verify />} />
-          <Route path="/reports" element={<Reports />} />
+          <Route path="/nfts" element={<NFTLedger />} />
           <Route path="/donations" element={<Donations />} />
           <Route path="/store" element={<Store />} />
         </Routes>
       </div>
-
-      {/* FLOATING AI ASSISTANT */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button className="w-14 h-14 bg-white text-black rounded-full shadow-[0_0_20px_rgba(255,159,252,0.3)] flex items-center justify-center hover:scale-105 transition-transform group">
-          <Bot className="w-6 h-6 group-hover:text-medishare-accent transition-colors" />
-        </button>
-      </div>
-
     </div>
   );
 };

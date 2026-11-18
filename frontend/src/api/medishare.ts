@@ -16,9 +16,12 @@ api.interceptors.request.use((config) => {
 });
 
 export const medishareService = {
+  // System Health
+  checkHealth: async () => api.get('/'),
+
   // Auth
-  register: async (data: any) => api.post('/users/register', data),
-  login: async (data: any) => {
+  register: async (data: Record<string, unknown>) => api.post('/users/register', data),
+  login: async (data: Record<string, unknown>) => {
     const res = await api.post('/users/login', data);
     if (res.data?.token) {
       localStorage.setItem('medishare_token', res.data.token);
@@ -35,20 +38,11 @@ export const medishareService = {
   },
   getProfile: async () => api.get('/users/profile'),
 
-  // Reports (Gemini AI Analysis)
-  uploadReport: async (file: File) => {
-    const formData = new FormData();
-    formData.append('pdfFile', file);
-    return api.post('/users/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-
-  // Verification (Blockchain)
+  // Blockchain Smart Contract Operations
   verifyBatch: async (batchNumber: string) => {
-    return api.get(`/chain/api/verify/${batchNumber}`);
+    return api.get(`/chain/api/verify/${encodeURIComponent(batchNumber)}`);
   },
-  addMedicineBatch: async (data: any) => {
+  addMedicineBatch: async (data: Record<string, unknown>) => {
     return api.post('/chain/api/medicines/add', data);
   },
   verifyMedicineBatch: async (batchNumber: string, status: boolean) => {
@@ -57,40 +51,22 @@ export const medishareService = {
   mintNFT: async (batchNumber: string) => {
     return api.post('/chain/api/nfts/mint', { batchNumber });
   },
+  getManufacturerNFTs: async (manufacturer: string) => {
+    return api.get(`/chain/api/nfts/${encodeURIComponent(manufacturer)}`);
+  },
+  checkNFTStatus: async (tokenId: string) => {
+    return api.get(`/chain/api/nft/status/${encodeURIComponent(tokenId)}`);
+  },
 
   // Donations
-  submitDonation: async (data: any) => api.post('/users/donation/', data),
+  submitDonation: async (data: Record<string, unknown>) => api.post('/users/donation/', data),
   getUserDonations: async (userId: string) => api.get(`/users/donation/user/${userId}`),
   getAllDonations: async () => api.get('/users/donation/'),
-  updateDonationStatus: async (id: string, status: string, adminResponse?: string) => 
+  updateDonationStatus: async (id: string, status: string, adminResponse?: string) =>
     api.patch(`/users/donation/${id}`, { status, adminResponse }),
 
-  // Store / E-commerce
+  // Store / Inventory
   getMedicines: async () => api.get('/ecommerce/medicine'),
-  addMedicine: async (data: any) => api.post('/ecommerce/medicine', data),
-  getMedicineDetails: async (id: string) => api.get(`/ecommerce/ecommerce/medicine/${id}`),
-
-  // Manufacturer AI Audits
-  validateEcoCert: async (file: File) => {
-    const formData = new FormData();
-    formData.append('pdf', file);
-    return api.post('/manufacturer/validateEcoCertificate', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-  validateSourcingCert: async (file: File) => {
-    const formData = new FormData();
-    formData.append('pdf', file);
-    return api.post('/manufacturer/validateSourcingCertificate', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-  validateLaborCert: async (file: File) => {
-    const formData = new FormData();
-    formData.append('pdf', file);
-    return api.post('/manufacturer/validateLaborCertificate', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  }
+  addMedicine: async (data: Record<string, unknown>) => api.post('/ecommerce/medicine', data),
+  getMedicineDetails: async (id: string) => api.get(`/ecommerce/medicine/${id}`),
 };
-

@@ -8,20 +8,18 @@ import Footer from './components/layout/Footer';
 function App() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
         <Navigation />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/medishare/*" element={<div className="pt-20"><MediShare /></div>} />
-            <Route path="/admin/*" element={<div className="pt-20"><Admin /></div>} />
-            {/* Direct convenience aliases */}
+            <Route path="/medishare/*" element={<MediShare />} />
+            <Route path="/admin/*" element={<Admin />} />
             <Route path="/verify" element={<Navigate to="/medishare/verify" replace />} />
             <Route path="/generate" element={<Navigate to="/medishare/generate" replace />} />
-            <Route path="/reports" element={<Navigate to="/medishare/reports" replace />} />
+            <Route path="/nfts" element={<Navigate to="/medishare/nfts" replace />} />
             <Route path="/donations" element={<Navigate to="/medishare/donations" replace />} />
             <Route path="/store" element={<Navigate to="/medishare/store" replace />} />
-            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -32,4 +30,3 @@ function App() {
 }
 
 export default App;
-
